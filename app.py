@@ -1,7 +1,9 @@
 from flask import Flask, render_template,request
 import pickle
 import numpy as np
+import joblib
 
+sc_X = joblib.load('std_scaler.bin')
 model = pickle.load(open('model_LR.pkl','rb'))
 app = Flask(__name__)
 
@@ -20,9 +22,16 @@ def home():
     data7 = float(request.form['g'])
     data8 = float(request.form['h'])
     arr = np.array([[data1,data2,data3,data4,data5,data6,data7,data8]])
-    pred = model.predict(arr)
-    return render_template('after.html',data = pred)
+    arr_sc = sc_X.transform(arr)
+    pred = model.predict(arr_sc)[0]
+    if pred==0:
+        pred_prob = model.predict_proba(arr_sc)[0][0]
+    else:
+        pred_prob = model.predict_proba(arr_sc)[0][1]
+
+    pred_prob = str((round(pred_prob,4))*100) + '%'
+    return render_template('after.html', data = [pred,pred_prob])
 
 
 if __name__ =='__main__':
-    app.run(port=3000,debug=True)
+    app.run("192.168.0.15",port=3000,debug=True)
